@@ -23,7 +23,7 @@ In this tutorial we will build an AI Agent in Express.js using LangGraph with Mo
 1. Clone this repository:
 
 ```bash
-xxx
+git clone https://github.com/kubowania/ecommerce-chat-helper
 ```
 
 2. Install the required dependencies:
