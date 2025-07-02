@@ -1,5 +1,5 @@
-// Import OpenAI's chat model and embeddings for AI text generation and vector creation
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai"
+// Import Google's Gemini chat model and embeddings for AI text generation and vector creation
+import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai"
 // Import structured output parser to ensure AI returns data in specific format
 import { StructuredOutputParser } from "@langchain/core/output_parsers"
 // Import MongoDB client for database connection
@@ -14,10 +14,11 @@ import "dotenv/config"
 // Create MongoDB client instance using connection string from environment variables
 const client = new MongoClient(process.env.MONGODB_ATLAS_URI as string)
 
-// Initialize OpenAI chat model for generating synthetic furniture data
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o-mini",  // Use GPT-4 mini model (cost-effective)
-  temperature: 0.7,          // Set creativity level (0.7 = moderately creative)
+// Initialize Google Gemini chat model for generating synthetic furniture data
+const llm = new ChatGoogleGenerativeAI({
+  model: "gemini-1.5-flash",  // Use Gemini 1.5 Flash model
+  temperature: 0.7,               // Set creativity level (0.7 = moderately creative)
+  apiKey: process.env.GOOGLE_API_KEY, // Google API key from environment variables
 })
 
 // Define schema for furniture item structure using Zod validation
@@ -54,7 +55,57 @@ type Item = z.infer<typeof itemSchema>
 // Create parser that ensures AI output matches our item schema
 const parser = StructuredOutputParser.fromZodSchema(z.array(itemSchema))
 
-// Function to generate synthetic furniture data using AI
+// Function to create database and collection before seeding
+async function setupDatabaseAndCollection(): Promise<void> {
+  console.log("Setting up database and collection...")
+  
+  // Get reference to the inventory_database database
+  const db = client.db("inventory_database")
+  
+  // Create the items collection if it doesn't exist
+  const collections = await db.listCollections({ name: "items" }).toArray()
+  
+  if (collections.length === 0) {
+    await db.createCollection("items")
+    console.log("Created 'items' collection in 'inventory_database' database")
+  } else {
+    console.log("'items' collection already exists in 'inventory_database' database")
+  }
+}
+
+// Function to create vector search index
+async function createVectorSearchIndex(): Promise<void> {
+  console.log("\nCreating Vector Search Index...")
+  console.log("MANUAL SETUP REQUIRED:")
+  console.log("Please create the vector search index manually in MongoDB Atlas:")
+  console.log("\n1. Navigate to Atlas Search tab")
+  console.log("2. Click 'Create Search Index'")
+  console.log("3. Select Search Type: 'Vector Search'")
+  console.log("4. Select 'items' collection in 'inventory_database' database")
+  console.log("5. Set index name to: vector_index")
+  console.log("6. Choose 'JSON Editor' and paste:")
+  console.log(`
+{
+  "fields": [
+    {
+      "type": "vector",
+      "path": "embedding",
+      "numDimensions": 768,
+      "similarity": "cosine"
+    }
+  ]
+}`)
+
+  console.log("7. Click 'Next'")
+  console.log("\nNote: Using 768 dimensions for Google's text-embedding-004 model")
+  console.log("Press Enter when you've completed the index creation...")
+  
+  // Wait for user input
+  await new Promise(resolve => {
+    process.stdin.once('data', () => resolve(undefined))
+  })
+}
+
 async function generateSyntheticData(): Promise<Item[]> {
   // Create detailed prompt instructing AI to generate furniture store data
   const prompt = `You are a helpful assistant that generates furniture store item data. Generate 10 furniture store items. Each record should include the following fields: item_id, item_name, item_description, brand, manufacturer_address, prices, categories, user_reviews, notes. Ensure variety in the data and realistic values.
@@ -110,6 +161,12 @@ async function seedDatabase(): Promise<void> {
     // Log successful connection
     console.log("You successfully connected to MongoDB!")
 
+    // Setup database and collection
+    await setupDatabaseAndCollection()
+    
+    // Create vector search index (manual step)
+    await createVectorSearchIndex()
+
     // Get reference to specific database
     const db = client.db("inventory_database")
     // Get reference to items collection
@@ -117,6 +174,7 @@ async function seedDatabase(): Promise<void> {
 
     // Clear existing data from collection (fresh start)
     await collection.deleteMany({})
+    console.log("Cleared existing data from items collection")
     
     // Generate new synthetic furniture data using AI
     const syntheticData = await generateSyntheticData()
@@ -131,10 +189,13 @@ async function seedDatabase(): Promise<void> {
     
     // Store each record with vector embeddings in MongoDB
     for (const record of recordsWithSummaries) {
-      // Create vector embeddings and store in MongoDB Atlas
+      // Create vector embeddings and store in MongoDB Atlas using Gemini
       await MongoDBAtlasVectorSearch.fromDocuments(
         [record],                    // Array containing single record
-        new OpenAIEmbeddings(),      // OpenAI embeddings model
+        new GoogleGenerativeAIEmbeddings({            // Google embedding model
+          apiKey: process.env.GOOGLE_API_KEY,         // Google API key
+          modelName: "text-embedding-004",            // Google's standard embedding model (768 dimensions)
+        }),
         {
           collection,                // MongoDB collection reference
           indexName: "vector_index", // Name of vector search index
