@@ -1,5 +1,5 @@
 // Import required modules from LangChain ecosystem
-import { OpenAIEmbeddings } from "@langchain/openai"           // For creating vector embeddings from text
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai" // For creating vector embeddings from text using Gemini
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai" // Google's Gemini AI model
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages" // Message types for conversations
 import {
@@ -90,9 +90,12 @@ export async function callAgent(client: MongoClient, query: string, thread_id: s
             embeddingKey: "embedding",       // Field containing the vector embeddings
           }
 
-          // Create vector store instance for semantic search
+          // Create vector store instance for semantic search using Google Gemini embeddings
           const vectorStore = new MongoDBAtlasVectorSearch(
-            new OpenAIEmbeddings(), // OpenAI's text-embedding model
+            new GoogleGenerativeAIEmbeddings({
+              apiKey: process.env.GOOGLE_API_KEY, // Google API key from environment
+              model: "text-embedding-004",         // Gemini embedding model
+            }),
             dbConfig
           )
 
@@ -168,10 +171,11 @@ export async function callAgent(client: MongoClient, query: string, thread_id: s
 
     // Initialize the AI model (Google's Gemini)
     const model = new ChatGoogleGenerativeAI({
-      model: "gemini-1.5-flash",  // Use the faster, cheaper Gemini model
-      temperature: 0,             // Deterministic responses (no randomness)
-      maxRetries: 0,             // Disable built-in retries (we handle our own)
-    }).bindTools(tools)           // Bind our custom tools to the model
+      model: "gemini-1.5-flash",         //  Use Gemini 1.5 Flash model
+      temperature: 0,                    // Deterministic responses (no randomness)
+      maxRetries: 0,                     // Disable built-in retries (we handle our own)
+      apiKey: process.env.GOOGLE_API_KEY, // Google API key from environment
+    }).bindTools(tools)                  // Bind our custom tools to the model
 
     // Decision function: determines next step in the workflow
     function shouldContinue(state: typeof GraphState.State) {
