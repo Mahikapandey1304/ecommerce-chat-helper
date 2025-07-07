@@ -75,35 +75,31 @@ async function setupDatabaseAndCollection(): Promise<void> {
 
 // Function to create vector search index
 async function createVectorSearchIndex(): Promise<void> {
-  console.log("\nCreating Vector Search Index...")
-  console.log("MANUAL SETUP REQUIRED:")
-  console.log("Please create the vector search index manually in MongoDB Atlas:")
-  console.log("\n1. Navigate to Atlas Search tab")
-  console.log("2. Click 'Create Search Index'")
-  console.log("3. Select Search Type: 'Vector Search'")
-  console.log("4. Select 'items' collection in 'inventory_database' database")
-  console.log("5. Set index name to: vector_index")
-  console.log("6. Choose 'JSON Editor' and paste:")
-  console.log(`
-{
-  "fields": [
-    {
-      "type": "vector",
-      "path": "embedding",
-      "numDimensions": 768,
-      "similarity": "cosine"
+  try {
+    const db = client.db("inventory_database")
+    const collection = db.collection("items")
+    await collection.dropIndexes()
+    const vectorSearchIdx = {
+      name: "vector_index",
+      type: "vectorSearch",
+      definition: {
+        "fields": [
+          {
+            "type": "vector",
+            "path": "embedding",
+            "numDimensions": 768,
+            "similarity": "cosine"
+          }
+        ]
+      }
     }
-  ]
-}`)
+    console.log("Creating vector search index...")
+    await collection.createSearchIndex(vectorSearchIdx);
 
-  console.log("7. Click 'Next'")
-  console.log("\nNote: Using 768 dimensions for Google's text-embedding-004 model")
-  console.log("Press Enter when you've completed the index creation...")
-  
-  // Wait for user input
-  await new Promise(resolve => {
-    process.stdin.once('data', () => resolve(undefined))
-  })
+    console.log("Successfully created vector search index");
+  } catch (e) {
+    console.error('Failed to create vector search index:', e);
+  }
 }
 
 async function generateSyntheticData(): Promise<Item[]> {
@@ -164,7 +160,7 @@ async function seedDatabase(): Promise<void> {
     // Setup database and collection
     await setupDatabaseAndCollection()
     
-    // Create vector search index (manual step)
+    // Create vector search index
     await createVectorSearchIndex()
 
     // Get reference to specific database
