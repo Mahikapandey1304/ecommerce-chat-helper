@@ -13,6 +13,8 @@ const ChatWidget = () => {
   const [inputValue, setInputValue] = useState('')
   // State to store conversation thread ID (null for new conversations)
   const [threadId, setThreadId] = useState(null)
+  // State to track if AI is processing a response
+  const [isLoading, setIsLoading] = useState(false)
   // Ref to reference the bottom of messages container for auto-scrolling
   const messagesEndRef = useRef(null)
 
@@ -70,6 +72,8 @@ const ChatWidget = () => {
     setMessages(prevMessages => [...prevMessages, message])
     // Clear input field immediately after sending
     setInputValue("")
+    // Show loading indicator
+    setIsLoading(true)
 
     // Determine API endpoint: use existing thread if available, otherwise create new
     const endpoint = threadId ? `http://localhost:8000/chat/${threadId}` : 'http://localhost:8000/chat'
@@ -108,11 +112,22 @@ const ChatWidget = () => {
       setMessages(prevMessages => [...prevMessages, agentResponse])
       // Update thread ID for future messages in this conversation
       setThreadId(data.threadId)
+      // Hide loading indicator
+      setIsLoading(false)
       // Log updated messages for debugging
       console.log(messages)
     } catch (error) {
       // Log any errors that occur during API call
       console.error('Error:', error)
+      // Hide loading indicator
+      setIsLoading(false)
+      // Show error message to user
+      const errorMessage = {
+        text: "Sorry, I'm having trouble responding right now. The AI service may be temporarily unavailable. Please try again in a moment.",
+        isAgent: true,
+        isError: true
+      }
+      setMessages(prevMessages => [...prevMessages, errorMessage])
     }
   }
 
@@ -144,12 +159,19 @@ const ChatWidget = () => {
               // Container for each message (key prop required for React lists)
               <div key={index}>
                 {/* Message bubble with conditional CSS class for styling */}
-                <div className={`message ${message.isAgent ? 'message-bot' : 'message-user'}`}>
+                <div className={`message ${message.isAgent ? 'message-bot' : 'message-user'} ${message.isError ? 'message-error' : ''}`}>
                   {/* Display message text */}
                   {message.text}
                 </div>
               </div>
             ))}
+
+            {/* Loading indicator while waiting for AI response */}
+            {isLoading && (
+              <div className="message message-bot message-loading">
+                <span className="loading-dots">Thinking...</span>
+              </div>
+            )}
 
             {/* Invisible div at bottom for auto-scroll reference */}
             <div ref={messagesEndRef} />
