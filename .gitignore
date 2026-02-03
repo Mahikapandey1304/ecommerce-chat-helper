@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Cache
+.cache/
+.parcel-cache/
+client/node_modules/.cache/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+easymart.db
+
+# Large data files
+server/products-for-import.json
+products-for-import.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.js.map
