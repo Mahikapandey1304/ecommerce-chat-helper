@@ -4,9 +4,15 @@ package-lock.json
 yarn.lock
 
 # Environment variables
+
 .env
 .env.local
 .env.*.local
+server/.env
+server/.env.local
+server/.env.*.local
+# Example env files (do not ignore .env.example)
+# server/.env.example (should be committed)
 
 # Build outputs
 dist/
@@ -17,6 +23,9 @@ build/
 .cache/
 .parcel-cache/
 client/node_modules/.cache/
+server/.cache/
+server/cache/
+server/*.cache
 
 # Database files
 *.db

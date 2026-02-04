@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "main": "index.js",
     "scripts": {
-        "dev": "npx ts-node index.ts",
+        "dev": "node --max-old-space-size=4096 -r ts-node/register index.ts",
         "seed": "npx ts-node seed-database.ts",
         "migrate": "npx ts-node migrate-shopify-data.ts",
         "export": "npx ts-node export-to-json.ts"
